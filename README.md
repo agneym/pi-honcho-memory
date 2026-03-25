@@ -8,7 +8,7 @@ Persistent memory extension for [pi](https://github.com/badlogic/pi-mono) using 
 - **Conversational persistence** — user/assistant messages saved to Honcho after each agent response
 - **Flexible session strategies** — choose repo, git-branch, or directory scoped memory
 - **LLM tools** — `honcho_search`, `honcho_chat`, `honcho_remember` for active memory operations
-- **Commands** — `/honcho-status`, `/honcho-setup`, `/recall`, `/remember`
+- **Commands** — `/honcho-status`, `/honcho-setup`
 - **Graceful degradation** — pi works normally if Honcho is unavailable
 
 ## Install
@@ -48,7 +48,7 @@ Docs: https://docs.honcho.dev/v3/documentation/introduction/vibecoding#agent-ski
 
 Config is read from (highest priority first):
 
-1. Environment variables: `HONCHO_API_KEY`, `HONCHO_URL`, `HONCHO_WORKSPACE_ID`, `HONCHO_PEER_NAME`, `HONCHO_AI_PEER`, `HONCHO_SESSION_STRATEGY`, `HONCHO_ENABLED`, `HONCHO_CONTEXT_TOKENS`, `HONCHO_MAX_MESSAGE_LENGTH`, `HONCHO_SEARCH_LIMIT`, `HONCHO_TOOL_PREVIEW_LENGTH`, `HONCHO_COMMAND_PREVIEW_LENGTH`
+1. Environment variables: `HONCHO_API_KEY`, `HONCHO_URL`, `HONCHO_WORKSPACE_ID`, `HONCHO_PEER_NAME`, `HONCHO_AI_PEER`, `HONCHO_SESSION_STRATEGY`, `HONCHO_ENABLED`, `HONCHO_CONTEXT_TOKENS`, `HONCHO_MAX_MESSAGE_LENGTH`, `HONCHO_SEARCH_LIMIT`, `HONCHO_TOOL_PREVIEW_LENGTH`
 2. Config file: `~/.honcho/config.json`
 
 `HONCHO_SESSION_STRATEGY` / `hosts.pi.sessionStrategy` supports:
@@ -59,19 +59,18 @@ Config is read from (highest priority first):
 
 Config file properties (`~/.honcho/config.json`):
 
-| Prop                            | Environment variable              | Description                                                              | Default            |
-| ------------------------------- | --------------------------------- | ------------------------------------------------------------------------ | ------------------ |
-| `apiKey`                        | `HONCHO_API_KEY`                  | Honcho API key                                                           | none               |
-| `peerName`                      | `HONCHO_PEER_NAME`                | User peer name                                                           | `$USER`            |
-| `hosts.pi.workspace`            | `HONCHO_WORKSPACE_ID`             | Honcho workspace ID                                                      | `pi`               |
-| `hosts.pi.aiPeer`               | `HONCHO_AI_PEER`                  | AI peer name                                                             | `pi`               |
-| `hosts.pi.endpoint`             | `HONCHO_URL`                      | Honcho API base URL                                                      | default Honcho API |
-| `hosts.pi.sessionStrategy`      | `HONCHO_SESSION_STRATEGY`         | Session scope for memory sharing                                         | `repo`             |
-| `hosts.pi.contextTokens`        | `HONCHO_CONTEXT_TOKENS`           | Token budget requested from Honcho for injected project memory           | `1200`             |
-| `hosts.pi.maxMessageLength`     | `HONCHO_MAX_MESSAGE_LENGTH`       | Maximum length of a synced user/assistant message before it is skipped   | `8000`             |
-| `hosts.pi.searchLimit`          | `HONCHO_SEARCH_LIMIT`             | Maximum number of search results returned by `honcho_search` and `/recall` | `8`              |
-| `hosts.pi.toolPreviewLength`    | `HONCHO_TOOL_PREVIEW_LENGTH`      | Character preview length per search result returned by `honcho_search`   | `500`              |
-| `hosts.pi.commandPreviewLength` | `HONCHO_COMMAND_PREVIEW_LENGTH`   | Character preview length per search result shown by `/recall`            | `300`              |
+| Prop                         | Environment variable         | Description                                                            | Default            |
+| ---------------------------- | ---------------------------- | ---------------------------------------------------------------------- | ------------------ |
+| `apiKey`                     | `HONCHO_API_KEY`             | Honcho API key                                                         | none               |
+| `peerName`                   | `HONCHO_PEER_NAME`           | User peer name                                                         | `$USER`            |
+| `hosts.pi.workspace`         | `HONCHO_WORKSPACE_ID`        | Honcho workspace ID                                                    | `pi`               |
+| `hosts.pi.aiPeer`            | `HONCHO_AI_PEER`             | AI peer name                                                           | `pi`               |
+| `hosts.pi.endpoint`          | `HONCHO_URL`                 | Honcho API base URL                                                    | default Honcho API |
+| `hosts.pi.sessionStrategy`   | `HONCHO_SESSION_STRATEGY`    | Session scope for memory sharing                                       | `repo`             |
+| `hosts.pi.contextTokens`     | `HONCHO_CONTEXT_TOKENS`      | Token budget requested from Honcho for injected project memory         | `1200`             |
+| `hosts.pi.maxMessageLength`  | `HONCHO_MAX_MESSAGE_LENGTH`  | Maximum length of a synced user/assistant message before it is skipped | `8000`             |
+| `hosts.pi.searchLimit`       | `HONCHO_SEARCH_LIMIT`        | Maximum number of search results returned by `honcho_search`           | `8`                |
+| `hosts.pi.toolPreviewLength` | `HONCHO_TOOL_PREVIEW_LENGTH` | Character preview length per search result returned by `honcho_search` | `500`              |
 
 All numeric options must be positive integers. Invalid values fall back to defaults.
 
@@ -85,12 +84,10 @@ All numeric options must be positive integers. Invalid values fall back to defau
 
 ## Commands
 
-| Command            | Description                       |
-| ------------------ | --------------------------------- |
-| `/honcho-status`   | Show connection status and config |
-| `/honcho-setup`    | Interactive configuration wizard  |
-| `/recall <topic>`  | Search memory for a topic         |
-| `/remember <fact>` | Save a fact to memory             |
+| Command          | Description                       |
+| ---------------- | --------------------------------- |
+| `/honcho-status` | Show connection status and config |
+| `/honcho-setup`  | Interactive configuration wizard  |
 
 ## Contributing
 

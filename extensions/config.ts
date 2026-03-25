@@ -8,7 +8,6 @@ export const DEFAULT_CONTEXT_TOKENS = 1200;
 export const DEFAULT_MAX_MESSAGE_LENGTH = 8000;
 export const DEFAULT_SEARCH_LIMIT = 8;
 export const DEFAULT_TOOL_PREVIEW_LENGTH = 500;
-export const DEFAULT_COMMAND_PREVIEW_LENGTH = 300;
 
 export interface HonchoExtensionConfig {
   enabled: boolean;
@@ -22,7 +21,6 @@ export interface HonchoExtensionConfig {
   maxMessageLength: number;
   searchLimit: number;
   toolPreviewLength: number;
-  commandPreviewLength: number;
 }
 
 interface ConfigFileHost {
@@ -34,7 +32,6 @@ interface ConfigFileHost {
   maxMessageLength?: number;
   searchLimit?: number;
   toolPreviewLength?: number;
-  commandPreviewLength?: number;
 }
 
 interface ConfigFile {
@@ -131,10 +128,6 @@ export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
     process.env.HONCHO_TOOL_PREVIEW_LENGTH || piHost?.toolPreviewLength,
     DEFAULT_TOOL_PREVIEW_LENGTH,
   );
-  const commandPreviewLength = normalizePositiveInteger(
-    process.env.HONCHO_COMMAND_PREVIEW_LENGTH || piHost?.commandPreviewLength,
-    DEFAULT_COMMAND_PREVIEW_LENGTH,
-  );
 
   return {
     enabled,
@@ -148,7 +141,6 @@ export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
     maxMessageLength,
     searchLimit,
     toolPreviewLength,
-    commandPreviewLength,
   };
 };
 
