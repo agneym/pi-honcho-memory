@@ -1,9 +1,27 @@
+/* eslint-disable no-magic-numbers */
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
 import { StringEnum } from "@mariozechner/pi-ai";
+import { Type } from "@sinclair/typebox";
 import { getHandles } from "./client.js";
 
-export function registerTools(pi: ExtensionAPI): void {
+const SEARCH_LIMIT = 8;
+const PREVIEW_LENGTH = 500;
+
+const ensureConnected = (): ReturnType<typeof getHandles> => {
+  const handles = getHandles();
+  if (!handles) {
+    throw new Error("Honcho is not connected. Run /honcho-setup to configure.");
+  }
+  return handles;
+};
+
+const formatResults = (results: { peerId: string; content: string }[]): string =>
+  results
+    .map((mem, idx) => `${idx + 1}. [${mem.peerId}] ${mem.content.slice(0, PREVIEW_LENGTH)}`)
+    .join("\n\n");
+
+// eslint-disable-next-line import/prefer-default-export
+export const registerTools = (pi: ExtensionAPI): void => {
   // --- honcho_search ---
   pi.registerTool({
     name: "honcho_search",
@@ -19,21 +37,21 @@ export function registerTools(pi: ExtensionAPI): void {
     parameters: Type.Object({
       query: Type.String({ description: "Search query" }),
     }),
-    async execute(_toolCallId, params) {
-      const handles = getHandles();
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const handles = ensureConnected();
       if (!handles) {
         throw new Error("Honcho is not connected. Run /honcho-setup to configure.");
       }
 
       const results = await handles.session.search(params.query, {
-        limit: 8,
+        limit: SEARCH_LIMIT,
       });
 
       if (results.length === 0) {
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: "No relevant memory found for this query.",
             },
           ],
@@ -41,12 +59,8 @@ export function registerTools(pi: ExtensionAPI): void {
         };
       }
 
-      const formatted = results
-        .map((m, i) => `${i + 1}. [${m.peerId}] ${m.content.slice(0, 500)}`)
-        .join("\n\n");
-
       return {
-        content: [{ type: "text", text: formatted }],
+        content: [{ type: "text" as const, text: formatResults(results) }],
         details: { count: results.length },
       };
     },
@@ -63,12 +77,13 @@ export function registerTools(pi: ExtensionAPI): void {
     promptGuidelines: ["Use honcho_chat for reasoning over memory, not simple lookup."],
     parameters: Type.Object({
       query: Type.String({ description: "Question to reason over" }),
+      // eslint-disable-next-line new-cap
       reasoningLevel: Type.Optional(
-        StringEnum(["minimal", "low", "medium", "high", "max"] as const),
+        StringEnum(["minimal", "low", "medium", "high", "max"] as const), // eslint-disable-line new-cap
       ),
     }),
-    async execute(_toolCallId, params) {
-      const handles = getHandles();
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const handles = ensureConnected();
       if (!handles) {
         throw new Error("Honcho is not connected. Run /honcho-setup to configure.");
       }
@@ -83,7 +98,7 @@ export function registerTools(pi: ExtensionAPI): void {
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: "No relevant memory found for this query.",
             },
           ],
@@ -92,7 +107,7 @@ export function registerTools(pi: ExtensionAPI): void {
       }
 
       return {
-        content: [{ type: "text", text: result }],
+        content: [{ type: "text" as const, text: result }],
         details: {},
       };
     },
@@ -113,8 +128,8 @@ export function registerTools(pi: ExtensionAPI): void {
         description: "The fact, preference, or decision to remember",
       }),
     }),
-    async execute(_toolCallId, params) {
-      const handles = getHandles();
+    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const handles = ensureConnected();
       if (!handles) {
         throw new Error("Honcho is not connected. Run /honcho-setup to configure.");
       }
@@ -125,9 +140,9 @@ export function registerTools(pi: ExtensionAPI): void {
       });
 
       return {
-        content: [{ type: "text", text: `Remembered: ${params.content}` }],
+        content: [{ type: "text" as const, text: `Remembered: ${params.content}` }],
         details: {},
       };
     },
   });
-}
+};

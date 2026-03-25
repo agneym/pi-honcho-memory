@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { homedir } from "node:os";
+import { join } from "node:path";
 
 export interface HonchoExtensionConfig {
   enabled: boolean;
@@ -27,23 +27,25 @@ interface ConfigFile {
 
 const CONFIG_PATH = join(homedir(), ".honcho", "config.json");
 
-async function readConfigFile(): Promise<ConfigFile | null> {
+const readConfigFile = async (): Promise<ConfigFile | null> => {
   try {
     const raw = await readFile(CONFIG_PATH, "utf-8");
-    return JSON.parse(raw) as ConfigFile;
+    const parsed: unknown = JSON.parse(raw);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    return (typeof parsed === "object" && parsed !== null ? parsed : {}) as ConfigFile;
   } catch {
     return null;
   }
-}
+};
 
-export async function resolveConfig(): Promise<HonchoExtensionConfig> {
+export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
   const file = await readConfigFile();
   const piHost = file?.hosts?.pi;
 
   // Enabled gate: explicit env var, otherwise true if API key is available
   const enabledEnv = process.env.HONCHO_ENABLED;
   const apiKey = process.env.HONCHO_API_KEY || file?.apiKey || undefined;
-  const enabled = enabledEnv !== undefined ? enabledEnv === "true" : !!apiKey;
+  const enabled = enabledEnv !== undefined ? enabledEnv === "true" : Boolean(apiKey);
 
   const baseURL = process.env.HONCHO_URL || piHost?.endpoint || undefined;
   const workspaceId = process.env.HONCHO_WORKSPACE_ID || piHost?.workspace || "pi";
@@ -51,8 +53,6 @@ export async function resolveConfig(): Promise<HonchoExtensionConfig> {
   const aiPeerId = process.env.HONCHO_AI_PEER || piHost?.aiPeer || "pi";
 
   return { enabled, apiKey, baseURL, workspaceId, userPeerId, aiPeerId };
-}
+};
 
-export function getConfigPath(): string {
-  return CONFIG_PATH;
-}
+export const getConfigPath = (): string => CONFIG_PATH;

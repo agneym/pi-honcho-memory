@@ -1,15 +1,38 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { bootstrap, clearHandles, getHandles } from "./client.js";
+import { registerCommands } from "./commands.js";
 import { resolveConfig } from "./config.js";
-import { bootstrap, getHandles, clearHandles } from "./client.js";
 import {
-  getCachedMemory,
   clearCachedMemory,
+  flushPending,
+  getCachedMemory,
   refreshMemoryCache,
   saveAndRefresh,
-  flushPending,
 } from "./memory.js";
 import { registerTools } from "./tools.js";
-import { registerCommands } from "./commands.js";
+
+interface StatusContext {
+  ui: {
+    setStatus: (id: string, text: string) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    theme: any;
+  };
+}
+
+const setStatus = (
+  ctx: StatusContext,
+  state: "off" | "connected" | "syncing" | "offline" | "error",
+): void => {
+  const { theme } = ctx.ui;
+  const labels: Record<string, string> = {
+    off: theme.fg("dim", "🧠 Honcho off"),
+    connected: theme.fg("success", "🧠 Connected"),
+    syncing: theme.fg("warning", "🧠 Syncing"),
+    offline: theme.fg("dim", "🧠 Offline"),
+    error: theme.fg("error", "🧠 Error"),
+  };
+  ctx.ui.setStatus("honcho", labels[state]);
+};
 
 export default function honcho(pi: ExtensionAPI): void {
   // Track initialization state
@@ -19,28 +42,12 @@ export default function honcho(pi: ExtensionAPI): void {
   registerTools(pi);
   registerCommands(pi);
 
-  // --- Helpers ---
-
-  function setStatus(
-    ctx: { ui: { setStatus: (id: string, text: string) => void; theme: any } },
-    state: "off" | "connected" | "syncing" | "offline" | "error",
-  ): void {
-    const theme = ctx.ui.theme;
-    const labels: Record<string, string> = {
-      off: theme.fg("dim", "🧠 Honcho off"),
-      connected: theme.fg("success", "🧠 Connected"),
-      syncing: theme.fg("warning", "🧠 Syncing"),
-      offline: theme.fg("dim", "🧠 Offline"),
-      error: theme.fg("error", "🧠 Error"),
-    };
-    ctx.ui.setStatus("honcho", labels[state]);
-  }
-
   /**
    * Non-blocking bootstrap: kicks off Honcho initialization in the background.
    * Sets status on completion. Never throws.
    */
-  function backgroundInit(ctx: { ui: any; cwd: string }): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const backgroundInit = (ctx: { ui: any; cwd: string }): void => {
     initializing = (async () => {
       try {
         const config = await resolveConfig();
@@ -60,7 +67,7 @@ export default function honcho(pi: ExtensionAPI): void {
         initializing = null;
       }
     })();
-  }
+  };
 
   // --- Lifecycle events ---
 
@@ -94,7 +101,9 @@ export default function honcho(pi: ExtensionAPI): void {
     }
 
     const memoryText = getCachedMemory();
-    if (!memoryText) return;
+    if (!memoryText) {
+      return;
+    }
 
     return {
       message: {
@@ -109,15 +118,16 @@ export default function honcho(pi: ExtensionAPI): void {
 
   pi.on("agent_end", async (event, ctx) => {
     const handles = getHandles();
-    if (!handles) return;
+    if (!handles) {
+      return;
+    }
 
     setStatus(ctx, "syncing");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    saveAndRefresh(handles, event.messages as any[]).then(
-      () => setStatus(ctx, "connected"),
-      () => setStatus(ctx, "offline"),
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-type-assertion
+    saveAndRefresh(handles, event.messages as any[])
+      .then(() => setStatus(ctx, "connected"))
+      .catch(() => setStatus(ctx, "offline"));
   });
 
   // --- Flush on lifecycle edges ---

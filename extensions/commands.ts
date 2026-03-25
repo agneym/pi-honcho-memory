@@ -1,11 +1,134 @@
+/* eslint-disable no-magic-numbers */
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { writeFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
-import { getHandles, bootstrap, clearHandles } from "./client.js";
-import { resolveConfig, getConfigPath } from "./config.js";
-import { getCachedMemory, flushPending } from "./memory.js";
+import { mkdir, writeFile } from "node:fs/promises"; // eslint-disable-line import/no-nodejs-modules
+import { dirname } from "node:path"; // eslint-disable-line import/no-nodejs-modules
+import { bootstrap, clearHandles, getHandles } from "./client.js";
+import { getCachedMemory } from "./memory.js";
+import { getConfigPath, resolveConfig } from "./config.js";
 
-export function registerCommands(pi: ExtensionAPI): void {
+const MASKED_KEY = "••••••••";
+const JSON_INDENT = 2;
+const PREVIEW_LENGTH = 300;
+
+// --- Helpers ---
+
+const errorMessage = (err: unknown): string => {
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return String(err);
+};
+
+const enabledLabel = (flag: boolean): string => {
+  if (flag) {
+    return "✅ yes";
+  }
+  return "❌ no";
+};
+
+const memoryCacheLabel = (cached: string | null): string => {
+  if (cached) {
+    return `${cached.length} chars`;
+  }
+  return "empty";
+};
+
+const buildStatusLines = (
+  config: Awaited<ReturnType<typeof resolveConfig>>,
+  handles: ReturnType<typeof getHandles>,
+  cached: string | null,
+): string[] => {
+  const lines: string[] = [];
+  lines.push(`Enabled:      ${enabledLabel(config.enabled)}`);
+  lines.push(`Connected:    ${enabledLabel(Boolean(handles))}`);
+  lines.push(`Workspace:    ${config.workspaceId}`);
+  lines.push(`User peer:    ${config.userPeerId}`);
+  lines.push(`AI peer:      ${config.aiPeerId}`);
+
+  if (handles) {
+    lines.push(`Session key:  ${handles.sessionKey}`);
+  }
+
+  lines.push(`Memory cache: ${memoryCacheLabel(cached)}`);
+
+  if (config.baseURL) {
+    lines.push(`Endpoint:     ${config.baseURL}`);
+  }
+
+  return lines;
+};
+
+const readExistingConfig = async (configPath: string): Promise<Record<string, unknown>> => {
+  try {
+    const { readFile } = await import("node:fs/promises"); // eslint-disable-line import/no-nodejs-modules
+    const raw = await readFile(configPath, "utf-8");
+    const parsed: unknown = JSON.parse(raw);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    return (typeof parsed === "object" && parsed !== null ? parsed : {}) as Record<string, unknown>;
+  } catch {
+    // Start fresh
+    return {};
+  }
+};
+
+const buildConfigFile = (
+  fileContents: Record<string, unknown>,
+  apiKey: string | null | undefined,
+  peerName: string | null | undefined,
+  endpoint: string | null | undefined,
+  existing: Awaited<ReturnType<typeof resolveConfig>>,
+): Record<string, unknown> => {
+  const updated = { ...fileContents };
+
+  if (apiKey && apiKey !== MASKED_KEY) {
+    updated.apiKey = apiKey;
+  }
+  if (peerName) {
+    updated.peerName = peerName;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  const hosts = (
+    typeof updated.hosts === "object" && updated.hosts !== null ? updated.hosts : {}
+  ) as Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  const piHost = (typeof hosts.pi === "object" && hosts.pi !== null ? hosts.pi : {}) as Record<
+    string,
+    unknown
+  >;
+  piHost.workspace = existing.workspaceId;
+  piHost.aiPeer = existing.aiPeerId;
+  if (endpoint) {
+    piHost.endpoint = endpoint;
+  }
+  hosts.pi = piHost;
+  updated.hosts = hosts;
+
+  return updated;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const testConnection = async (pi: ExtensionAPI, ctx: { ui: any; cwd: string }): Promise<void> => {
+  ctx.ui.notify("Testing connection...", "info");
+  try {
+    clearHandles();
+    const newConfig = await resolveConfig();
+    await bootstrap(pi, newConfig, ctx.cwd);
+    ctx.ui.notify("✅ Connected to Honcho!", "info");
+    ctx.ui.setStatus("honcho", ctx.ui.theme.fg("success", "🧠 Connected"));
+  } catch (err) {
+    ctx.ui.notify(`❌ Connection failed: ${errorMessage(err)}`, "error");
+    ctx.ui.setStatus("honcho", ctx.ui.theme.fg("error", "🧠 Error"));
+  }
+};
+
+const formatSearchResults = (results: { peerId: string; content: string }[]): string =>
+  results
+    .map((mem, idx) => `${idx + 1}. [${mem.peerId}] ${mem.content.slice(0, PREVIEW_LENGTH)}`)
+    .join("\n\n");
+
+// eslint-disable-next-line import/prefer-default-export
+export const registerCommands = (pi: ExtensionAPI): void => {
   // --- /honcho-status ---
   pi.registerCommand("honcho-status", {
     description: "Show Honcho memory connection status",
@@ -13,24 +136,7 @@ export function registerCommands(pi: ExtensionAPI): void {
       const config = await resolveConfig();
       const handles = getHandles();
       const cached = getCachedMemory();
-
-      const lines: string[] = [];
-      lines.push(`Enabled:      ${config.enabled ? "✅ yes" : "❌ no"}`);
-      lines.push(`Connected:    ${handles ? "✅ yes" : "❌ no"}`);
-      lines.push(`Workspace:    ${config.workspaceId}`);
-      lines.push(`User peer:    ${config.userPeerId}`);
-      lines.push(`AI peer:      ${config.aiPeerId}`);
-
-      if (handles) {
-        lines.push(`Session key:  ${handles.sessionKey}`);
-      }
-
-      lines.push(`Memory cache: ${cached ? `${cached.length} chars` : "empty"}`);
-
-      if (config.baseURL) {
-        lines.push(`Endpoint:     ${config.baseURL}`);
-      }
-
+      const lines = buildStatusLines(config, handles, cached);
       ctx.ui.notify(lines.join("\n"), "info");
     },
   });
@@ -41,72 +147,30 @@ export function registerCommands(pi: ExtensionAPI): void {
     handler: async (_args, ctx) => {
       const existing = await resolveConfig();
 
-      const apiKey = await ctx.ui.input(
-        "Honcho API key:",
-        existing.apiKey ? "••••••••" : "hch-...",
-      );
-      if (!apiKey || apiKey === "••••••••") {
+      const defaultKey = existing.apiKey ? MASKED_KEY : "hch-...";
+      const apiKey = await ctx.ui.input("Honcho API key:", defaultKey);
+      if (!apiKey || apiKey === MASKED_KEY) {
         if (!existing.apiKey) {
           ctx.ui.notify("API key is required.", "error");
           return;
         }
-        // Keep existing key
       }
 
       const peerName = await ctx.ui.input("Your peer name:", existing.userPeerId);
-
       const endpoint = await ctx.ui.input(
         "Honcho endpoint (leave blank for default):",
         existing.baseURL || "",
       );
 
-      // Build config file
       const configPath = getConfigPath();
-      let fileContents: Record<string, unknown> = {};
-      try {
-        const { readFile } = await import("node:fs/promises");
-        const raw = await readFile(configPath, "utf-8");
-        fileContents = JSON.parse(raw);
-      } catch {
-        // Start fresh
-      }
-
-      if (apiKey && apiKey !== "••••••••") {
-        fileContents.apiKey = apiKey;
-      }
-      if (peerName) {
-        fileContents.peerName = peerName;
-      }
-
-      // Ensure hosts.pi section
-      const hosts = (fileContents.hosts as Record<string, unknown>) || {};
-      const piHost = (hosts.pi as Record<string, unknown>) || {};
-      piHost.workspace = existing.workspaceId;
-      piHost.aiPeer = existing.aiPeerId;
-      if (endpoint) {
-        piHost.endpoint = endpoint;
-      }
-      hosts.pi = piHost;
-      fileContents.hosts = hosts;
+      const fileContents = await readExistingConfig(configPath);
+      const updated = buildConfigFile(fileContents, apiKey, peerName, endpoint, existing);
 
       await mkdir(dirname(configPath), { recursive: true });
-      await writeFile(configPath, JSON.stringify(fileContents, null, 2) + "\n", "utf-8");
+      await writeFile(configPath, `${JSON.stringify(updated, null, JSON_INDENT)}\n`, "utf-8");
 
-      ctx.ui.notify("Config saved to " + configPath, "info");
-
-      // Test connection
-      ctx.ui.notify("Testing connection...", "info");
-      try {
-        clearHandles();
-        const newConfig = await resolveConfig();
-        await bootstrap(pi, newConfig, ctx.cwd);
-        ctx.ui.notify("✅ Connected to Honcho!", "info");
-        ctx.ui.setStatus("honcho", ctx.ui.theme.fg("success", "🧠 Connected"));
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        ctx.ui.notify(`❌ Connection failed: ${msg}`, "error");
-        ctx.ui.setStatus("honcho", ctx.ui.theme.fg("error", "🧠 Error"));
-      }
+      ctx.ui.notify(`Config saved to ${configPath}`, "info");
+      await testConnection(pi, ctx);
     },
   });
 
@@ -127,23 +191,16 @@ export function registerCommands(pi: ExtensionAPI): void {
       }
 
       try {
-        const results = await handles.session.search(query, {
-          limit: 8,
-        });
+        const results = await handles.session.search(query, { limit: 8 });
 
         if (results.length === 0) {
-          ctx.ui.notify("No memories found for: " + query, "info");
+          ctx.ui.notify(`No memories found for: ${query}`, "info");
           return;
         }
 
-        const formatted = results
-          .map((m, i) => `${i + 1}. [${m.peerId}] ${m.content.slice(0, 300)}`)
-          .join("\n\n");
-
-        ctx.ui.notify(formatted, "info");
+        ctx.ui.notify(formatSearchResults(results), "info");
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        ctx.ui.notify(`Search failed: ${msg}`, "error");
+        ctx.ui.notify(`Search failed: ${errorMessage(err)}`, "error");
       }
     },
   });
@@ -168,11 +225,10 @@ export function registerCommands(pi: ExtensionAPI): void {
         await handles.aiPeer
           .conclusionsOf(handles.userPeer)
           .create({ content, sessionId: handles.session });
-        ctx.ui.notify("✅ Remembered: " + content, "info");
+        ctx.ui.notify(`✅ Remembered: ${content}`, "info");
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        ctx.ui.notify(`Failed to save: ${msg}`, "error");
+        ctx.ui.notify(`Failed to save: ${errorMessage(err)}`, "error");
       }
     },
   });
-}
+};

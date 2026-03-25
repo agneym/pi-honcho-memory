@@ -1,27 +1,24 @@
+/* eslint-disable no-magic-numbers */
 import type { HonchoHandles } from "./client.js";
 
 // --- Cached memory text ---
 let cachedMemoryText: string | null = null;
 
-export function getCachedMemory(): string | null {
-  return cachedMemoryText;
-}
+export const getCachedMemory = (): string | null => cachedMemoryText;
 
-export function clearCachedMemory(): void {
+export const clearCachedMemory = (): void => {
   cachedMemoryText = null;
-}
+};
 
 // --- Async save queue ---
 let pendingSave: Promise<void> = Promise.resolve();
 
-function enqueue(fn: () => Promise<void>): Promise<void> {
+const enqueue = (fn: () => Promise<void>): Promise<void> => {
   pendingSave = pendingSave.then(fn, () => fn());
   return pendingSave;
-}
+};
 
-export function flushPending(): Promise<void> {
-  return pendingSave;
-}
+export const flushPending = (): Promise<void> => pendingSave;
 
 // --- Memory fetch ---
 
@@ -29,7 +26,7 @@ export function flushPending(): Promise<void> {
  * Fetch context from Honcho and cache it for injection.
  * Non-blocking from the caller's perspective when used after save.
  */
-export async function refreshMemoryCache(handles: HonchoHandles): Promise<void> {
+export const refreshMemoryCache = async (handles: HonchoHandles): Promise<void> => {
   try {
     const ctx = await handles.session.context({
       summary: true,
@@ -56,7 +53,7 @@ export async function refreshMemoryCache(handles: HonchoHandles): Promise<void> 
   } catch {
     // Keep stale cache on failure rather than clearing it
   }
-}
+};
 
 // --- Message extraction helpers ---
 
@@ -65,15 +62,23 @@ interface ContentBlock {
   text?: string;
 }
 
-function extractText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
+const isTextBlock = (block: ContentBlock): block is ContentBlock & { text: string } =>
+  block.type === "text" && typeof block.text === "string";
+
+const extractText = (content: unknown): string => {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (!Array.isArray(content)) {
+    return "";
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   return (content as ContentBlock[])
-    .filter((b) => b.type === "text" && typeof b.text === "string")
-    .map((b) => b.text!)
+    .filter(isTextBlock)
+    .map((block) => block.text)
     .join("\n")
     .trim();
-}
+};
 
 const MAX_MESSAGE_LENGTH = 8000;
 
@@ -86,22 +91,26 @@ interface AgentMessage {
  * Extract user/assistant text pairs from agent_end messages.
  * Skips tool results, images, and oversized blobs.
  */
-export function extractConversationalPairs(
+export const extractConversationalPairs = (
   messages: AgentMessage[],
-): Array<{ role: "user" | "assistant"; text: string }> {
-  const pairs: Array<{ role: "user" | "assistant"; text: string }> = [];
+): { role: "user" | "assistant"; text: string }[] => {
+  const pairs: { role: "user" | "assistant"; text: string }[] = [];
 
   for (const msg of messages) {
-    if (msg.role !== "user" && msg.role !== "assistant") continue;
+    if (msg.role !== "user" && msg.role !== "assistant") {
+      continue;
+    }
 
     const text = extractText(msg.content);
-    if (!text || text.length > MAX_MESSAGE_LENGTH) continue;
+    if (!text || text.length > MAX_MESSAGE_LENGTH) {
+      continue;
+    }
 
-    pairs.push({ role: msg.role as "user" | "assistant", text });
+    pairs.push({ role: msg.role, text });
   }
 
   return pairs;
-}
+};
 
 // --- Save + refresh pipeline ---
 
@@ -109,15 +118,20 @@ export function extractConversationalPairs(
  * Save conversational messages to Honcho then refresh the cache.
  * Enqueued so saves and refreshes happen in order without racing.
  */
-export function saveAndRefresh(handles: HonchoHandles, messages: AgentMessage[]): Promise<void> {
+export const saveAndRefresh = (handles: HonchoHandles, messages: AgentMessage[]): Promise<void> => {
   const pairs = extractConversationalPairs(messages);
-  if (pairs.length === 0) return Promise.resolve();
+  if (pairs.length === 0) {
+    return Promise.resolve();
+  }
 
   return enqueue(async () => {
     try {
-      const honchoMessages = pairs.map((p) =>
-        p.role === "user" ? handles.userPeer.message(p.text) : handles.aiPeer.message(p.text),
-      );
+      const honchoMessages = pairs.map((pair) => {
+        if (pair.role === "user") {
+          return handles.userPeer.message(pair.text);
+        }
+        return handles.aiPeer.message(pair.text);
+      });
       await handles.session.addMessages(honchoMessages);
     } catch {
       // Non-fatal: message save failed, will retry on next turn
@@ -125,4 +139,4 @@ export function saveAndRefresh(handles: HonchoHandles, messages: AgentMessage[])
 
     await refreshMemoryCache(handles);
   });
-}
+};

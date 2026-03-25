@@ -1,4 +1,5 @@
-import { Honcho, type Peer, type Session } from "@honcho-ai/sdk";
+import type { Peer, Session } from "@honcho-ai/sdk";
+import { Honcho } from "@honcho-ai/sdk"; // eslint-disable-line no-duplicate-imports
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { HonchoExtensionConfig } from "./config.js";
 import { deriveSessionKey } from "./session-key.js";
@@ -13,23 +14,21 @@ export interface HonchoHandles {
 
 let cachedHandles: HonchoHandles | null = null;
 
-export function getHandles(): HonchoHandles | null {
-  return cachedHandles;
-}
+export const getHandles = (): HonchoHandles | null => cachedHandles;
 
-export function clearHandles(): void {
+export const clearHandles = (): void => {
   cachedHandles = null;
-}
+};
 
 /**
  * Bootstrap the Honcho client and resolve all handles.
  * Throws on failure — callers must catch and degrade gracefully.
  */
-export async function bootstrap(
+export const bootstrap = async (
   pi: ExtensionAPI,
   config: HonchoExtensionConfig,
   cwd: string,
-): Promise<HonchoHandles> {
+): Promise<HonchoHandles> => {
   const honcho = new Honcho({
     apiKey: config.apiKey,
     baseURL: config.baseURL,
@@ -48,4 +47,4 @@ export async function bootstrap(
 
   cachedHandles = { honcho, userPeer, aiPeer, session, sessionKey };
   return cachedHandles;
-}
+};
