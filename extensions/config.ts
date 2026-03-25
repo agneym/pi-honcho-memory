@@ -4,6 +4,12 @@ import { join } from "node:path";
 
 export type HonchoSessionStrategy = "repo" | "git-branch" | "directory";
 
+export const DEFAULT_CONTEXT_TOKENS = 1200;
+export const DEFAULT_MAX_MESSAGE_LENGTH = 8000;
+export const DEFAULT_SEARCH_LIMIT = 8;
+export const DEFAULT_TOOL_PREVIEW_LENGTH = 500;
+export const DEFAULT_COMMAND_PREVIEW_LENGTH = 300;
+
 export interface HonchoExtensionConfig {
   enabled: boolean;
   apiKey?: string;
@@ -12,6 +18,11 @@ export interface HonchoExtensionConfig {
   userPeerId: string;
   aiPeerId: string;
   sessionStrategy: HonchoSessionStrategy;
+  contextTokens: number;
+  maxMessageLength: number;
+  searchLimit: number;
+  toolPreviewLength: number;
+  commandPreviewLength: number;
 }
 
 interface ConfigFileHost {
@@ -19,6 +30,11 @@ interface ConfigFileHost {
   aiPeer?: string;
   endpoint?: string;
   sessionStrategy?: HonchoSessionStrategy;
+  contextTokens?: number;
+  maxMessageLength?: number;
+  searchLimit?: number;
+  toolPreviewLength?: number;
+  commandPreviewLength?: number;
 }
 
 interface ConfigFile {
@@ -34,6 +50,24 @@ const SESSION_STRATEGIES = ["repo", "git-branch", "directory"] as const;
 
 const isSessionStrategy = (value: string): value is HonchoSessionStrategy =>
   SESSION_STRATEGIES.some((strategy) => strategy === value);
+
+export const normalizePositiveInteger = (
+  value: number | string | null | undefined,
+  fallback: number,
+): number => {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+};
 
 export const readConfigFile = async (): Promise<ConfigFile | null> => {
   try {
@@ -81,8 +115,41 @@ export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
   const sessionStrategy = normalizeSessionStrategy(
     process.env.HONCHO_SESSION_STRATEGY || piHost?.sessionStrategy,
   );
+  const contextTokens = normalizePositiveInteger(
+    process.env.HONCHO_CONTEXT_TOKENS || piHost?.contextTokens,
+    DEFAULT_CONTEXT_TOKENS,
+  );
+  const maxMessageLength = normalizePositiveInteger(
+    process.env.HONCHO_MAX_MESSAGE_LENGTH || piHost?.maxMessageLength,
+    DEFAULT_MAX_MESSAGE_LENGTH,
+  );
+  const searchLimit = normalizePositiveInteger(
+    process.env.HONCHO_SEARCH_LIMIT || piHost?.searchLimit,
+    DEFAULT_SEARCH_LIMIT,
+  );
+  const toolPreviewLength = normalizePositiveInteger(
+    process.env.HONCHO_TOOL_PREVIEW_LENGTH || piHost?.toolPreviewLength,
+    DEFAULT_TOOL_PREVIEW_LENGTH,
+  );
+  const commandPreviewLength = normalizePositiveInteger(
+    process.env.HONCHO_COMMAND_PREVIEW_LENGTH || piHost?.commandPreviewLength,
+    DEFAULT_COMMAND_PREVIEW_LENGTH,
+  );
 
-  return { enabled, apiKey, baseURL, workspaceId, userPeerId, aiPeerId, sessionStrategy };
+  return {
+    enabled,
+    apiKey,
+    baseURL,
+    workspaceId,
+    userPeerId,
+    aiPeerId,
+    sessionStrategy,
+    contextTokens,
+    maxMessageLength,
+    searchLimit,
+    toolPreviewLength,
+    commandPreviewLength,
+  };
 };
 
 export const getConfigPath = (): string => CONFIG_PATH;

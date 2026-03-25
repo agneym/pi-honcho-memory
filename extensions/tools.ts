@@ -5,9 +5,6 @@ import { Type } from "@sinclair/typebox";
 import type { HonchoHandles } from "./client.js";
 import { getHandles } from "./client.js"; // eslint-disable-line no-duplicate-imports
 
-const SEARCH_LIMIT = 8;
-const PREVIEW_LENGTH = 500;
-
 const ensureConnected = (): HonchoHandles => {
   const handles = getHandles();
   if (!handles) {
@@ -16,9 +13,12 @@ const ensureConnected = (): HonchoHandles => {
   return handles;
 };
 
-const formatResults = (results: { peerId: string; content: string }[]): string =>
+const formatResults = (
+  results: { peerId: string; content: string }[],
+  previewLength: number,
+): string =>
   results
-    .map((mem, idx) => `${idx + 1}. [${mem.peerId}] ${mem.content.slice(0, PREVIEW_LENGTH)}`)
+    .map((mem, idx) => `${idx + 1}. [${mem.peerId}] ${mem.content.slice(0, previewLength)}`)
     .join("\n\n");
 
 // eslint-disable-next-line import/prefer-default-export
@@ -42,7 +42,7 @@ export const registerTools = (pi: ExtensionAPI): void => {
       const handles = ensureConnected();
 
       const results = await handles.session.search(params.query, {
-        limit: SEARCH_LIMIT,
+        limit: handles.config.searchLimit,
       });
 
       if (results.length === 0) {
@@ -58,7 +58,12 @@ export const registerTools = (pi: ExtensionAPI): void => {
       }
 
       return {
-        content: [{ type: "text" as const, text: formatResults(results) }],
+        content: [
+          {
+            type: "text" as const,
+            text: formatResults(results, handles.config.toolPreviewLength),
+          },
+        ],
         details: { count: results.length },
       };
     },

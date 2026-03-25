@@ -2,6 +2,10 @@
 import type { HonchoHandles } from "./client.js";
 
 // --- Cached memory text ---
+const PERSISTENT_MEMORY_HEADER = "[Persistent memory]";
+const USER_PROFILE_LABEL = "User profile";
+const PROJECT_SUMMARY_LABEL = "Project summary";
+
 let cachedMemoryText: string | null = null;
 
 export const getCachedMemory = (): string | null => cachedMemoryText;
@@ -26,30 +30,37 @@ export const flushPending = (): Promise<void> => pendingSave;
  * Fetch context from Honcho and cache it for injection.
  * Non-blocking from the caller's perspective when used after save.
  */
+export const buildMemoryText = (context: {
+  peerRepresentation?: string | null;
+  summary?: { content?: string | null } | null;
+}): string | null => {
+  const parts: string[] = [];
+
+  if (context.peerRepresentation) {
+    parts.push(`${USER_PROFILE_LABEL}:\n${context.peerRepresentation}`);
+  }
+
+  if (context.summary?.content) {
+    parts.push(`${PROJECT_SUMMARY_LABEL}:\n${context.summary.content}`);
+  }
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return `${PERSISTENT_MEMORY_HEADER}\n${parts.join("\n\n")}`;
+};
+
 export const refreshMemoryCache = async (handles: HonchoHandles): Promise<void> => {
   try {
     const ctx = await handles.session.context({
       summary: true,
       peerPerspective: handles.aiPeer,
       peerTarget: handles.userPeer,
-      tokens: 1200,
+      tokens: handles.config.contextTokens,
     });
 
-    const parts: string[] = [];
-
-    if (ctx.peerRepresentation) {
-      parts.push(`User profile:\n${ctx.peerRepresentation}`);
-    }
-
-    if (ctx.summary?.content) {
-      parts.push(`Session summary:\n${ctx.summary.content}`);
-    }
-
-    if (parts.length > 0) {
-      cachedMemoryText = `[Persistent memory]\n${parts.join("\n\n")}`;
-    } else {
-      cachedMemoryText = null;
-    }
+    cachedMemoryText = buildMemoryText(ctx);
   } catch {
     // Keep stale cache on failure rather than clearing it
   }
@@ -80,8 +91,6 @@ const extractText = (content: unknown): string => {
     .trim();
 };
 
-const MAX_MESSAGE_LENGTH = 8000;
-
 interface AgentMessage {
   role?: string;
   content?: unknown;
@@ -93,6 +102,7 @@ interface AgentMessage {
  */
 export const extractConversationalPairs = (
   messages: AgentMessage[],
+  maxMessageLength: number,
 ): { role: "user" | "assistant"; text: string }[] => {
   const pairs: { role: "user" | "assistant"; text: string }[] = [];
 
@@ -102,7 +112,7 @@ export const extractConversationalPairs = (
     }
 
     const text = extractText(msg.content);
-    if (!text || text.length > MAX_MESSAGE_LENGTH) {
+    if (!text || text.length > maxMessageLength) {
       continue;
     }
 
@@ -119,7 +129,7 @@ export const extractConversationalPairs = (
  * Enqueued so saves and refreshes happen in order without racing.
  */
 export const saveAndRefresh = (handles: HonchoHandles, messages: AgentMessage[]): Promise<void> => {
-  const pairs = extractConversationalPairs(messages);
+  const pairs = extractConversationalPairs(messages, handles.config.maxMessageLength);
   if (pairs.length === 0) {
     return Promise.resolve();
   }

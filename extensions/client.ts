@@ -10,6 +10,7 @@ export interface HonchoHandles {
   aiPeer: Peer;
   session: Session;
   sessionKey: string;
+  config: HonchoExtensionConfig;
 }
 
 let cachedHandles: HonchoHandles | null = null;
@@ -45,6 +46,6 @@ export const bootstrap = async (
 
   await session.addPeers([userPeer, aiPeer]);
 
-  cachedHandles = { honcho, userPeer, aiPeer, session, sessionKey };
+  cachedHandles = { honcho, userPeer, aiPeer, session, sessionKey, config };
   return cachedHandles;
 };
