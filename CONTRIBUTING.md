@@ -39,3 +39,44 @@ pnpm run fmt:check     # check formatting without writing
 2. **oxfmt** — formats staged files and re-stages them
 
 See `lefthook.yml` for configuration.
+
+## Releases
+
+This project uses [Changesets](https://github.com/changesets/changesets) for versioning and changelog generation.
+
+### Add a changeset
+
+For any PR that should ship in a release, add a changeset:
+
+```bash
+pnpm changeset
+```
+
+This creates a file in `.changeset/` describing the version bump and release note.
+
+### Version packages locally
+
+To apply pending changesets locally:
+
+```bash
+pnpm version-packages
+```
+
+This updates `package.json` and `CHANGELOG.md`.
+
+### Publish
+
+To publish manually:
+
+```bash
+pnpm release
+```
+
+### GitHub automation
+
+`.github/workflows/release.yml` uses `changesets/action` on pushes to `main`.
+If there are pending changesets, it opens or updates a release PR. Once merged, the next run publishes to npm.
+
+Required repository secret:
+
+- `NPM_TOKEN`

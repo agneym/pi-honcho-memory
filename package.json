@@ -14,12 +14,16 @@
     "fmt:check": "oxfmt --check .",
     "lint:github": "oxlint --format=github",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
   },
   "dependencies": {
     "@honcho-ai/sdk": "^2.0.1"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.30.0",
     "lefthook": "^2.1.4",
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0",
@@ -30,6 +34,9 @@
     "@mariozechner/pi-ai": "*",
     "@mariozechner/pi-coding-agent": "*",
     "@sinclair/typebox": "*"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "packageManager": "pnpm@11.0.0-dev.1005+sha512.91f84a392eea348ea4852a182912d2520273a4336f933b78cc44bc931eb999923c097e9433a9b355adc1f725725ea99082fc9f032a559df832632e764c92c798",
   "pi": {
