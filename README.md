@@ -4,11 +4,9 @@ Persistent memory extension for [pi](https://github.com/badlogic/pi-mono) using 
 
 ## Features
 
-- **Automatic memory injection** — cached user profile and session context injected into every prompt with zero network latency
+- **Automatic memory injection** — cached user profile and session summary injected into every prompt with zero network latency
 - **Conversational persistence** — user/assistant messages saved to Honcho after each agent response
 - **Flexible session strategies** — choose repo, git-branch, or directory scoped memory
-- **Git awareness** — current branch, HEAD, dirty tree state, and branch/commit changes are injected into context
-- **AI self-context** — recent assistant worklog is persisted in the pi session and injected on future turns
 - **LLM tools** — `honcho_search`, `honcho_chat`, `honcho_remember` for active memory operations
 - **Commands** — `/honcho-status`, `/honcho-setup`, `/recall`, `/remember`
 - **Graceful degradation** — pi works normally if Honcho is unavailable
