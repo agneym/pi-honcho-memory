@@ -40,6 +40,17 @@ pnpm run fmt:check     # check formatting without writing
 
 See `lefthook.yml` for configuration.
 
+## Testing
+
+Uses [Vitest](https://vitest.dev/) for unit tests.
+
+```bash
+pnpm test          # run all tests once
+pnpm test:watch    # re-run on file changes
+```
+
+Tests live in the `tests/` directory alongside the source.
+
 ## Releases
 
 This project uses [Changesets](https://github.com/changesets/changesets) for versioning and changelog generation.
@@ -77,6 +88,3 @@ pnpm release
 `.github/workflows/release.yml` uses `changesets/action` on pushes to `main`.
 If there are pending changesets, it opens or updates a release PR. Once merged, the next run publishes to npm.
 
-Required repository secret:
-
-- `NPM_TOKEN`
