@@ -103,8 +103,11 @@ const buildConfigFile = (
     string,
     unknown
   >;
-  piHost.workspace = existing.workspaceId;
-  piHost.aiPeer = existing.aiPeerId;
+  // Workspace and aiPeer are not collected by the setup wizard.
+  // Writing them unconditionally would freeze env-var-resolved values
+  // (HONCHO_WORKSPACE_ID / HONCHO_AI_PEER) into the config file and cause
+  // Stale values if those env vars later change.
+  // Any value already present in the file is preserved via piHost above.
   piHost.sessionStrategy = normalizeSessionStrategy(sessionStrategy || existing.sessionStrategy);
   if (endpoint) {
     piHost.endpoint = endpoint;
