@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { homedir, userInfo } from "node:os";
 import { join } from "node:path";
 
 export type HonchoSessionStrategy = "repo" | "git-branch" | "directory";
@@ -75,7 +75,8 @@ export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
 
   const baseURL = process.env.HONCHO_URL || piHost?.endpoint || undefined;
   const workspaceId = process.env.HONCHO_WORKSPACE_ID || piHost?.workspace || "pi";
-  const userPeerId = process.env.HONCHO_PEER_NAME || file?.peerName || process.env.USER || "user";
+  const userPeerId =
+    process.env.HONCHO_PEER_NAME || file?.peerName || userInfo().username || "user";
   const aiPeerId = process.env.HONCHO_AI_PEER || piHost?.aiPeer || "pi";
   const sessionStrategy = normalizeSessionStrategy(
     process.env.HONCHO_SESSION_STRATEGY || piHost?.sessionStrategy,
