@@ -14,7 +14,6 @@ import { getCachedMemory } from "./memory.js";
 
 const MASKED_KEY = "••••••••";
 const JSON_INDENT = 2;
-const PREVIEW_LENGTH = 300;
 
 // --- Helpers ---
 
@@ -51,6 +50,11 @@ const buildStatusLines = (
   lines.push(`User peer:    ${config.userPeerId}`);
   lines.push(`AI peer:      ${config.aiPeerId}`);
   lines.push(`Session mode: ${getSessionStrategyLabel(config.sessionStrategy)}`);
+  lines.push(`Context toks: ${config.contextTokens}`);
+  lines.push(`Msg max len:  ${config.maxMessageLength}`);
+  lines.push(`Search limit: ${config.searchLimit}`);
+  lines.push(`Tool preview: ${config.toolPreviewLength}`);
+  lines.push(`Cmd preview:  ${config.commandPreviewLength}`);
 
   if (handles) {
     lines.push(`Session key:  ${handles.sessionKey}`);
@@ -121,9 +125,12 @@ const testConnection = async (pi: ExtensionAPI, ctx: { ui: any; cwd: string }): 
   }
 };
 
-const formatSearchResults = (results: { peerId: string; content: string }[]): string =>
+const formatSearchResults = (
+  results: { peerId: string; content: string }[],
+  previewLength: number,
+): string =>
   results
-    .map((mem, idx) => `${idx + 1}. [${mem.peerId}] ${mem.content.slice(0, PREVIEW_LENGTH)}`)
+    .map((mem, idx) => `${idx + 1}. [${mem.peerId}] ${mem.content.slice(0, previewLength)}`)
     .join("\n\n");
 
 // eslint-disable-next-line import/prefer-default-export
@@ -216,14 +223,16 @@ export const registerCommands = (pi: ExtensionAPI): void => {
       }
 
       try {
-        const results = await handles.session.search(query, { limit: 8 });
+        const results = await handles.session.search(query, {
+          limit: handles.config.searchLimit,
+        });
 
         if (results.length === 0) {
           ctx.ui.notify(`No memories found for: ${query}`, "info");
           return;
         }
 
-        ctx.ui.notify(formatSearchResults(results), "info");
+        ctx.ui.notify(formatSearchResults(results, handles.config.commandPreviewLength), "info");
       } catch (err) {
         ctx.ui.notify(`Search failed: ${errorMessage(err)}`, "error");
       }
