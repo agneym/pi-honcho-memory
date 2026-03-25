@@ -1,13 +1,15 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [],
+  "plugins": ["node", "eslint", "typescript", "oxc", "import", "promise"],
   "categories": {
     "correctness": "error",
     "perf": "warn",
     "style": "warn",
     "suspicious": "warn"
   },
-  "rules": {},
+  "rules": {
+    "import/no-cycle": ["error", { "maxDepth": 3 }]
+  },
   "settings": {},
   "env": {
     "builtin": true
