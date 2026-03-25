@@ -12,7 +12,9 @@
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt --write .",
     "fmt:check": "oxfmt --check .",
-    "lint:github": "oxlint --format=github"
+    "lint:github": "oxlint --format=github",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@honcho-ai/sdk": "^2.0.1"
@@ -21,7 +23,8 @@
     "lefthook": "^2.1.4",
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0",
-    "oxlint-tsgolint": "^0.17.3"
+    "oxlint-tsgolint": "^0.17.3",
+    "vitest": "^4.1.1"
   },
   "peerDependencies": {
     "@mariozechner/pi-ai": "*",
