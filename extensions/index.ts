@@ -9,17 +9,6 @@ import {
   refreshMemoryCache,
   saveAndRefresh,
 } from "./memory.js";
-import {
-  captureGitState,
-  describeGitChange,
-  describeGitState,
-  extractAssistantWorklogSummary,
-  formatWorklog,
-  pushWorklogItem,
-  restoreWorklog,
-} from "./runtime-context.js";
-// eslint-disable-next-line no-duplicate-imports
-import type { GitState, WorklogItem } from "./runtime-context.js";
 import { registerTools } from "./tools.js";
 
 interface StatusContext {
@@ -27,13 +16,6 @@ interface StatusContext {
     setStatus: (id: string, text: string) => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     theme: any;
-  };
-}
-
-interface SessionStateContext {
-  cwd: string;
-  sessionManager: {
-    getBranch: () => unknown[];
   };
 }
 
@@ -53,46 +35,11 @@ const setStatus = (
 };
 
 export default function honcho(pi: ExtensionAPI): void {
-  // Track initialization state
   let initializing: Promise<void> | null = null;
-  let lastGitState: GitState | null = null;
-  let worklog: WorklogItem[] = [];
 
   // --- Register tools & commands (always, so they can show helpful errors if not connected) ---
   registerTools(pi);
   registerCommands(pi);
-
-  const restoreSessionState = async (ctx: SessionStateContext): Promise<void> => {
-    worklog = restoreWorklog(ctx.sessionManager.getBranch());
-    lastGitState = await captureGitState(pi, ctx.cwd);
-  };
-
-  const buildLocalContext = async (cwd: string): Promise<string | null> => {
-    const parts: string[] = [];
-    const currentGitState = await captureGitState(pi, cwd);
-
-    if (currentGitState) {
-      parts.push(`Git state:\n${describeGitState(currentGitState).join("\n")}`);
-
-      const changes = describeGitChange(lastGitState, currentGitState);
-      if (changes.length > 0) {
-        parts.push(`Git changes since last turn:\n${changes.join("\n")}`);
-      }
-
-      lastGitState = currentGitState;
-    }
-
-    const worklogText = formatWorklog(worklog);
-    if (worklogText) {
-      parts.push(`AI worklog:\n${worklogText}`);
-    }
-
-    if (parts.length === 0) {
-      return null;
-    }
-
-    return `[Local session context]\n${parts.join("\n\n")}`;
-  };
 
   /**
    * Non-blocking bootstrap: kicks off Honcho initialization in the background.
@@ -123,19 +70,16 @@ export default function honcho(pi: ExtensionAPI): void {
 
   // --- Lifecycle events ---
 
-  pi.on("session_start", async (_event, ctx) => {
+  pi.on("session_start", (_event, ctx) => {
     clearHandles();
     clearCachedMemory();
-    await restoreSessionState(ctx);
     backgroundInit(ctx);
   });
 
   pi.on("session_switch", async (_event, ctx) => {
-    // Flush pending saves for the old session
     await flushPending();
     clearHandles();
     clearCachedMemory();
-    await restoreSessionState(ctx);
     backgroundInit(ctx);
   });
 
@@ -143,37 +87,26 @@ export default function honcho(pi: ExtensionAPI): void {
     await flushPending();
     clearHandles();
     clearCachedMemory();
-    await restoreSessionState(ctx);
     backgroundInit(ctx);
   });
 
   // --- Prompt path: inject cached memory (0ms network) ---
 
-  pi.on("before_agent_start", async (_event, ctx) => {
+  pi.on("before_agent_start", async () => {
     // Wait for initial bootstrap if it's still running on the very first prompt
     if (initializing) {
       await initializing;
     }
 
-    const sections: string[] = [];
     const memoryText = getCachedMemory();
-    if (memoryText) {
-      sections.push(memoryText);
-    }
-
-    const localContext = await buildLocalContext(ctx.cwd);
-    if (localContext) {
-      sections.push(localContext);
-    }
-
-    if (sections.length === 0) {
+    if (!memoryText) {
       return;
     }
 
     return {
       message: {
         customType: "honcho-memory",
-        content: sections.join("\n\n"),
+        content: memoryText,
         display: false,
       },
     };
@@ -182,16 +115,6 @@ export default function honcho(pi: ExtensionAPI): void {
   // --- Post-response: save messages + refresh cache ---
 
   pi.on("agent_end", async (event, ctx) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-type-assertion
-    const summary = extractAssistantWorklogSummary(event.messages as any[]);
-    if (summary) {
-      const entry = { timestamp: Date.now(), summary };
-      worklog = pushWorklogItem(worklog, entry);
-      pi.appendEntry("honcho-worklog", entry);
-    }
-
-    lastGitState = await captureGitState(pi, ctx.cwd);
-
     const handles = getHandles();
     if (!handles) {
       return;
