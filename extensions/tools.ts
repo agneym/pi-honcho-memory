@@ -2,12 +2,13 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { StringEnum } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
-import { getHandles } from "./client.js";
+import type { HonchoHandles } from "./client.js";
+import { getHandles } from "./client.js"; // eslint-disable-line no-duplicate-imports
 
 const SEARCH_LIMIT = 8;
 const PREVIEW_LENGTH = 500;
 
-const ensureConnected = (): ReturnType<typeof getHandles> => {
+const ensureConnected = (): HonchoHandles => {
   const handles = getHandles();
   if (!handles) {
     throw new Error("Honcho is not connected. Run /honcho-setup to configure.");
@@ -39,9 +40,6 @@ export const registerTools = (pi: ExtensionAPI): void => {
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const handles = ensureConnected();
-      if (!handles) {
-        throw new Error("Honcho is not connected. Run /honcho-setup to configure.");
-      }
 
       const results = await handles.session.search(params.query, {
         limit: SEARCH_LIMIT,
@@ -84,9 +82,6 @@ export const registerTools = (pi: ExtensionAPI): void => {
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const handles = ensureConnected();
-      if (!handles) {
-        throw new Error("Honcho is not connected. Run /honcho-setup to configure.");
-      }
 
       const result = await handles.aiPeer.chat(params.query, {
         target: handles.userPeer,
@@ -130,9 +125,6 @@ export const registerTools = (pi: ExtensionAPI): void => {
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const handles = ensureConnected();
-      if (!handles) {
-        throw new Error("Honcho is not connected. Run /honcho-setup to configure.");
-      }
 
       await handles.aiPeer.conclusionsOf(handles.userPeer).create({
         content: params.content,
