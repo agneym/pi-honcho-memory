@@ -1,5 +1,8 @@
 pre-commit:
   jobs:
+    - name: oxlint
+      glob: "*.{js,ts,jsx,tsx,mjs,cjs}"
+      run: npx oxlint {staged_files}
     - name: oxfmt
       glob: "*.{js,ts,jsx,tsx,mjs,cjs}"
       run: npx oxfmt --write {staged_files}

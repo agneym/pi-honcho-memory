@@ -1,0 +1,6 @@
+ignoredBuiltDependencies:
+  - koffi
+  - protobufjs
+
+onlyBuiltDependencies:
+  - lefthook
