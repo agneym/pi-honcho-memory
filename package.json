@@ -1,0 +1,27 @@
+{
+  "name": "pi-honcho-memory",
+  "version": "1.0.0",
+  "description": "Honcho persistent memory extension for pi coding agent",
+  "keywords": [
+    "pi-package"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@sinclair/typebox": "*"
+  },
+  "dependencies": {
+    "@honcho-ai/sdk": "^2.0.1"
+  },
+  "devDependencies": {
+    "lefthook": "^2.1.4",
+    "oxfmt": "^0.42.0"
+  }
+}
