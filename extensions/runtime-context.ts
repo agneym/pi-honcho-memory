@@ -1,5 +1,6 @@
 /* eslint-disable no-magic-numbers */
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { execGit } from "./git.js"; // eslint-disable-line import/no-named-export
 
 export interface GitState {
   root: string;
@@ -15,11 +16,6 @@ export interface WorklogItem {
   summary: string;
 }
 
-interface PiExecResult {
-  code: number;
-  stdout: string;
-}
-
 interface TextBlock {
   type?: string;
   text?: string;
@@ -33,21 +29,6 @@ interface AgentMessage {
 const MAX_WORKLOG_ITEMS = 12;
 const MAX_SUMMARY_LENGTH = 280;
 const DIRTY_FILE_PREVIEW = 5;
-
-const execGit = async (
-  pi: ExtensionAPI,
-  cwd: string,
-  args: string[],
-): Promise<PiExecResult | null> => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    return (await pi.exec("git", ["-C", cwd, ...args], {
-      timeout: 3000,
-    })) as PiExecResult;
-  } catch {
-    return null;
-  }
-};
 
 const trim = (value: string): string => value.trim();
 
