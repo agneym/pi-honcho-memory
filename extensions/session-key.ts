@@ -2,6 +2,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createHash } from "node:crypto"; // eslint-disable-line import/no-nodejs-modules
 import type { HonchoSessionStrategy } from "./config.js";
+import { execGit } from "./git.js"; // eslint-disable-line import/no-named-export
 
 const HASH_LENGTH = 8;
 const SSH_MATCH_INDEX = 1;
@@ -39,21 +40,6 @@ const normalizeGitUrl = (url: string): string | null => {
   }
 
   return null;
-};
-
-const execGit = async (
-  pi: ExtensionAPI,
-  cwd: string,
-  args: string[],
-): Promise<{ code: number; stdout: string } | null> => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    return (await pi.exec("git", ["-C", cwd, ...args], {
-      timeout: 3000,
-    })) as { code: number; stdout: string };
-  } catch {
-    return null;
-  }
 };
 
 const tryGitRemote = async (pi: ExtensionAPI, cwd: string): Promise<string | null> => {
