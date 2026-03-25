@@ -54,7 +54,6 @@ const buildStatusLines = (
   lines.push(`Msg max len:  ${config.maxMessageLength}`);
   lines.push(`Search limit: ${config.searchLimit}`);
   lines.push(`Tool preview: ${config.toolPreviewLength}`);
-  lines.push(`Cmd preview:  ${config.commandPreviewLength}`);
 
   if (handles) {
     lines.push(`Session key:  ${handles.sessionKey}`);
@@ -124,14 +123,6 @@ const testConnection = async (pi: ExtensionAPI, ctx: { ui: any; cwd: string }): 
     ctx.ui.setStatus("honcho", ctx.ui.theme.fg("error", "🧠 Error"));
   }
 };
-
-const formatSearchResults = (
-  results: { peerId: string; content: string }[],
-  previewLength: number,
-): string =>
-  results
-    .map((mem, idx) => `${idx + 1}. [${mem.peerId}] ${mem.content.slice(0, previewLength)}`)
-    .join("\n\n");
 
 // eslint-disable-next-line import/prefer-default-export
 export const registerCommands = (pi: ExtensionAPI): void => {
@@ -203,66 +194,6 @@ export const registerCommands = (pi: ExtensionAPI): void => {
 
       ctx.ui.notify(`Config saved to ${configPath}`, "info");
       await testConnection(pi, ctx);
-    },
-  });
-
-  // --- /recall ---
-  pi.registerCommand("recall", {
-    description: "Search Honcho memory for a topic",
-    handler: async (args, ctx) => {
-      const query = args.trim();
-      if (!query) {
-        ctx.ui.notify("Usage: /recall <topic>", "warning");
-        return;
-      }
-
-      const handles = getHandles();
-      if (!handles) {
-        ctx.ui.notify("Honcho is not connected. Run /honcho-setup first.", "error");
-        return;
-      }
-
-      try {
-        const results = await handles.session.search(query, {
-          limit: handles.config.searchLimit,
-        });
-
-        if (results.length === 0) {
-          ctx.ui.notify(`No memories found for: ${query}`, "info");
-          return;
-        }
-
-        ctx.ui.notify(formatSearchResults(results, handles.config.commandPreviewLength), "info");
-      } catch (err) {
-        ctx.ui.notify(`Search failed: ${errorMessage(err)}`, "error");
-      }
-    },
-  });
-
-  // --- /remember ---
-  pi.registerCommand("remember", {
-    description: "Save a fact to Honcho persistent memory",
-    handler: async (args, ctx) => {
-      const content = args.trim();
-      if (!content) {
-        ctx.ui.notify("Usage: /remember <fact>", "warning");
-        return;
-      }
-
-      const handles = getHandles();
-      if (!handles) {
-        ctx.ui.notify("Honcho is not connected. Run /honcho-setup first.", "error");
-        return;
-      }
-
-      try {
-        await handles.aiPeer
-          .conclusionsOf(handles.userPeer)
-          .create({ content, sessionId: handles.session });
-        ctx.ui.notify(`✅ Remembered: ${content}`, "info");
-      } catch (err) {
-        ctx.ui.notify(`Failed to save: ${errorMessage(err)}`, "error");
-      }
     },
   });
 };
