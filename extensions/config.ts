@@ -35,7 +35,7 @@ const SESSION_STRATEGIES = ["repo", "git-branch", "directory"] as const;
 const isSessionStrategy = (value: string): value is HonchoSessionStrategy =>
   SESSION_STRATEGIES.some((strategy) => strategy === value);
 
-const readConfigFile = async (): Promise<ConfigFile | null> => {
+export const readConfigFile = async (): Promise<ConfigFile | null> => {
   try {
     const raw = await readFile(CONFIG_PATH, "utf-8");
     const parsed: unknown = JSON.parse(raw);

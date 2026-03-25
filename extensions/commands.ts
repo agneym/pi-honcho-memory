@@ -7,6 +7,7 @@ import {
   getConfigPath,
   getSessionStrategyLabel,
   normalizeSessionStrategy,
+  readConfigFile,
   resolveConfig,
 } from "./config.js";
 import { getCachedMemory } from "./memory.js";
@@ -62,19 +63,6 @@ const buildStatusLines = (
   }
 
   return lines;
-};
-
-const readExistingConfig = async (configPath: string): Promise<Record<string, unknown>> => {
-  try {
-    const { readFile } = await import("node:fs/promises"); // eslint-disable-line import/no-nodejs-modules
-    const raw = await readFile(configPath, "utf-8");
-    const parsed: unknown = JSON.parse(raw);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    return (typeof parsed === "object" && parsed !== null ? parsed : {}) as Record<string, unknown>;
-  } catch {
-    // Start fresh
-    return {};
-  }
 };
 
 const buildConfigFile = (
@@ -189,7 +177,8 @@ export const registerCommands = (pi: ExtensionAPI): void => {
       }
 
       const configPath = getConfigPath();
-      const fileContents = await readExistingConfig(configPath);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      const fileContents = ((await readConfigFile()) ?? {}) as Record<string, unknown>;
       const updated = buildConfigFile(
         fileContents,
         apiKey,
