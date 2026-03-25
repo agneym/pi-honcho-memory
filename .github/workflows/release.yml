@@ -1,8 +1,10 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
     branches: [main]
+    types: [completed]
 
 permissions:
   contents: write
@@ -11,6 +13,7 @@ permissions:
 
 jobs:
   release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -27,8 +30,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: npm install -g npm@latest
-      - run: pnpm run lint
-      - run: pnpm test
 
       - uses: changesets/action@v1
         with:
