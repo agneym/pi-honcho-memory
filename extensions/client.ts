@@ -35,7 +35,7 @@ export const bootstrap = async (
     workspaceId: config.workspaceId,
   });
 
-  const sessionKey = await deriveSessionKey(pi, cwd);
+  const sessionKey = await deriveSessionKey(pi, cwd, config.sessionStrategy);
 
   const [userPeer, aiPeer, session] = await Promise.all([
     honcho.peer(config.userPeerId),

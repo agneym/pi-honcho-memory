@@ -3,8 +3,13 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { mkdir, writeFile } from "node:fs/promises"; // eslint-disable-line import/no-nodejs-modules
 import { dirname } from "node:path"; // eslint-disable-line import/no-nodejs-modules
 import { bootstrap, clearHandles, getHandles } from "./client.js";
+import {
+  getConfigPath,
+  getSessionStrategyLabel,
+  normalizeSessionStrategy,
+  resolveConfig,
+} from "./config.js";
 import { getCachedMemory } from "./memory.js";
-import { getConfigPath, resolveConfig } from "./config.js";
 
 const MASKED_KEY = "••••••••";
 const JSON_INDENT = 2;
@@ -44,6 +49,7 @@ const buildStatusLines = (
   lines.push(`Workspace:    ${config.workspaceId}`);
   lines.push(`User peer:    ${config.userPeerId}`);
   lines.push(`AI peer:      ${config.aiPeerId}`);
+  lines.push(`Session mode: ${getSessionStrategyLabel(config.sessionStrategy)}`);
 
   if (handles) {
     lines.push(`Session key:  ${handles.sessionKey}`);
@@ -76,6 +82,7 @@ const buildConfigFile = (
   apiKey: string | null | undefined,
   peerName: string | null | undefined,
   endpoint: string | null | undefined,
+  sessionStrategy: string | null | undefined,
   existing: Awaited<ReturnType<typeof resolveConfig>>,
 ): Record<string, unknown> => {
   const updated = { ...fileContents };
@@ -98,6 +105,7 @@ const buildConfigFile = (
   >;
   piHost.workspace = existing.workspaceId;
   piHost.aiPeer = existing.aiPeerId;
+  piHost.sessionStrategy = normalizeSessionStrategy(sessionStrategy || existing.sessionStrategy);
   if (endpoint) {
     piHost.endpoint = endpoint;
   }
@@ -161,10 +169,35 @@ export const registerCommands = (pi: ExtensionAPI): void => {
         "Honcho endpoint (leave blank for default):",
         existing.baseURL || "",
       );
+      const sessionStrategyInput = await ctx.ui.input(
+        "Session strategy (repo/git-branch/directory):",
+        existing.sessionStrategy,
+      );
+      const sessionStrategy = normalizeSessionStrategy(
+        sessionStrategyInput || existing.sessionStrategy,
+      );
+
+      if (
+        sessionStrategyInput &&
+        sessionStrategyInput !== sessionStrategy &&
+        sessionStrategyInput !== existing.sessionStrategy
+      ) {
+        ctx.ui.notify(
+          `Unknown session strategy '${sessionStrategyInput}'. Using ${sessionStrategy}.`,
+          "warning",
+        );
+      }
 
       const configPath = getConfigPath();
       const fileContents = await readExistingConfig(configPath);
-      const updated = buildConfigFile(fileContents, apiKey, peerName, endpoint, existing);
+      const updated = buildConfigFile(
+        fileContents,
+        apiKey,
+        peerName,
+        endpoint,
+        sessionStrategy,
+        existing,
+      );
 
       await mkdir(dirname(configPath), { recursive: true });
       await writeFile(configPath, `${JSON.stringify(updated, null, JSON_INDENT)}\n`, "utf-8");

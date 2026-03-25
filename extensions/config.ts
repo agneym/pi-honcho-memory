@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+export type HonchoSessionStrategy = "repo" | "git-branch" | "directory";
+
 export interface HonchoExtensionConfig {
   enabled: boolean;
   apiKey?: string;
@@ -9,12 +11,14 @@ export interface HonchoExtensionConfig {
   workspaceId: string;
   userPeerId: string;
   aiPeerId: string;
+  sessionStrategy: HonchoSessionStrategy;
 }
 
 interface ConfigFileHost {
   workspace?: string;
   aiPeer?: string;
   endpoint?: string;
+  sessionStrategy?: HonchoSessionStrategy;
 }
 
 interface ConfigFile {
@@ -26,6 +30,10 @@ interface ConfigFile {
 }
 
 const CONFIG_PATH = join(homedir(), ".honcho", "config.json");
+const SESSION_STRATEGIES = ["repo", "git-branch", "directory"] as const;
+
+const isSessionStrategy = (value: string): value is HonchoSessionStrategy =>
+  SESSION_STRATEGIES.some((strategy) => strategy === value);
 
 const readConfigFile = async (): Promise<ConfigFile | null> => {
   try {
@@ -36,6 +44,24 @@ const readConfigFile = async (): Promise<ConfigFile | null> => {
   } catch {
     return null;
   }
+};
+
+export const normalizeSessionStrategy = (
+  value: string | null | undefined,
+): HonchoSessionStrategy => {
+  if (value && isSessionStrategy(value)) {
+    return value;
+  }
+  return "repo";
+};
+
+export const getSessionStrategyLabel = (strategy: HonchoSessionStrategy): string => {
+  const labels: Record<HonchoSessionStrategy, string> = {
+    repo: "Repo",
+    "git-branch": "Git branch",
+    directory: "Directory",
+  };
+  return labels[strategy];
 };
 
 export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
@@ -51,8 +77,11 @@ export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
   const workspaceId = process.env.HONCHO_WORKSPACE_ID || piHost?.workspace || "pi";
   const userPeerId = process.env.HONCHO_PEER_NAME || file?.peerName || process.env.USER || "user";
   const aiPeerId = process.env.HONCHO_AI_PEER || piHost?.aiPeer || "pi";
+  const sessionStrategy = normalizeSessionStrategy(
+    process.env.HONCHO_SESSION_STRATEGY || piHost?.sessionStrategy,
+  );
 
-  return { enabled, apiKey, baseURL, workspaceId, userPeerId, aiPeerId };
+  return { enabled, apiKey, baseURL, workspaceId, userPeerId, aiPeerId, sessionStrategy };
 };
 
 export const getConfigPath = (): string => CONFIG_PATH;
