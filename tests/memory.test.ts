@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildMemoryText, extractConversationalPairs } from "../extensions/memory.ts";
+import {
+  buildMemoryText,
+  buildProjectSummaryText,
+  buildUserProfileText,
+  extractConversationalPairs,
+} from "../extensions/memory.ts";
 
 describe("extractConversationalPairs", () => {
   it("keeps user and assistant text messages in order", () => {
@@ -54,5 +59,21 @@ describe("buildMemoryText", () => {
 
   it("returns null when there is no memory to inject", () => {
     expect(buildMemoryText({})).toBeNull();
+  });
+});
+
+describe("split memory sections", () => {
+  it("builds separate text blocks for stable user profile and project summary", () => {
+    expect(buildUserProfileText("Prefers pnpm.")).toBe(
+      "[Persistent memory]\nUser profile:\nPrefers pnpm.",
+    );
+    expect(buildProjectSummaryText("Working on the Honcho extension.")).toBe(
+      "[Persistent memory]\nProject summary:\nWorking on the Honcho extension.",
+    );
+  });
+
+  it("returns null for empty section values", () => {
+    expect(buildUserProfileText(null)).toBeNull();
+    expect(buildProjectSummaryText("")).toBeNull();
   });
 });
