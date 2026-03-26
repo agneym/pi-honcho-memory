@@ -16,13 +16,13 @@ Persistent memory extension for [pi](https://pi.dev) using [Honcho](https://honc
 ## Install
 
 ```bash
-pi install npm:pi-honcho-memory
+pi install npm:@agney/pi-honcho-memory
 ```
 
 Or try without installing:
 
 ```bash
-pi -e npm:pi-honcho-memory
+pi -e npm:@agney/pi-honcho-memory
 ```
 
 ## Setup
