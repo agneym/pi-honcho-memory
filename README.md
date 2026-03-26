@@ -1,10 +1,12 @@
 # pi-honcho-memory
 
-Persistent memory extension for [pi](https://github.com/badlogic/pi-mono) using [Honcho](https://honcho.dev).
+Persistent memory extension for [pi](https://pi.dev) using [Honcho](https://honcho.dev).
+
+![NPM Version](https://img.shields.io/npm/v/%40agney%2Fpi-honcho-memory)
 
 ## Features
 
-- **Automatic memory injection** — cached user profile and project summary injected into every prompt with zero network latency
+- **Automatic memory injection** — cached user profile and project summary injected into the system prompt with zero network latency
 - **Conversational persistence** — user/assistant messages saved to Honcho after each agent response
 - **Flexible session strategies** — choose repo, git-branch, or directory scoped memory
 - **LLM tools** — `honcho_search`, `honcho_chat`, `honcho_remember` for active memory operations
