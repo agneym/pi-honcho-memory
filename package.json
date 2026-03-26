@@ -1,6 +1,6 @@
 {
   "name": "@agney/pi-honcho-memory",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Honcho persistent memory extension for pi coding agent",
   "keywords": [
     "pi-package"

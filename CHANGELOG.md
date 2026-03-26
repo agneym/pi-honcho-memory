@@ -1,5 +1,22 @@
 # @agney/pi-honcho-memory
 
+## 0.1.0
+
+### Minor Changes
+
+- a0cd5c7: Add configurable Honcho memory tuning options for injected context tokens, synced message length, search result limits, and preview lengths. Also relabel the injected repo-wide summary as a project summary and document the available config and environment variable mappings in the README.
+- 42e2ef2: Remove the `/recall` and `/remember` commands and keep the equivalent `honcho_search` and `honcho_remember` tools.
+
+  The extension still provides `/honcho-status` and `/honcho-setup` for visibility and configuration.
+
+  Also remove the unused `HONCHO_COMMAND_PREVIEW_LENGTH` / `hosts.pi.commandPreviewLength` config option that only applied to `/recall`.
+
+- 9c9f5d2: Remove runtime context injection (git state, worklog) from prompt. The extension now focuses solely on Honcho persistent memory. Users who want git context can install a separate extension.
+
+### Patch Changes
+
+- 5e4dee4: Inject both user profile and project summary into the system prompt for maximum prompt cache stability. Memory is fetched once at session start and never re-fetched mid-session — conversation history provides all context within a session. Removes the `context` hook and ephemeral message injection in favor of a simpler, fully cacheable approach.
+
 ## 0.0.2
 
 ### Patch Changes
