@@ -34,6 +34,7 @@ export const bootstrap = async (
     apiKey: config.apiKey,
     baseURL: config.baseURL,
     workspaceId: config.workspaceId,
+    defaultHeaders: config.headers,
   });
 
   const sessionKey = await deriveSessionKey(pi, cwd, config.sessionStrategy);

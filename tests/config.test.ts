@@ -3,6 +3,7 @@ import {
   getSessionStrategyLabel,
   normalizePositiveInteger,
   normalizeSessionStrategy,
+  parseHeaders,
 } from "../extensions/config.ts";
 
 describe("config helpers", () => {
@@ -35,5 +36,41 @@ describe("config helpers", () => {
     expect(normalizePositiveInteger("abc", 7)).toBe(7);
     expect(normalizePositiveInteger("1.5", 7)).toBe(7);
     expect(normalizePositiveInteger(undefined, 7)).toBe(7);
+  });
+
+  it("parses headers from an object", () => {
+    expect(parseHeaders({ "X-Custom": "value" })).toEqual({ "X-Custom": "value" });
+    expect(
+      parseHeaders({
+        "CF-Access-Client-Id": "abc",
+        "CF-Access-Client-Secret": "xyz",
+      }),
+    ).toEqual({
+      "CF-Access-Client-Id": "abc",
+      "CF-Access-Client-Secret": "xyz",
+    });
+  });
+
+  it("parses headers from a JSON string", () => {
+    expect(parseHeaders('{"X-Custom":"value"}')).toEqual({ "X-Custom": "value" });
+  });
+
+  it("returns undefined for missing or empty input", () => {
+    expect(parseHeaders(undefined)).toBeUndefined();
+    expect(parseHeaders(null)).toBeUndefined();
+    expect(parseHeaders({})).toBeUndefined();
+    expect(parseHeaders("")).toBeUndefined();
+    expect(parseHeaders("  ")).toBeUndefined();
+  });
+
+  it("returns undefined for invalid JSON", () => {
+    expect(parseHeaders("not json")).toBeUndefined();
+    expect(parseHeaders("[1,2,3]")).toBeUndefined();
+  });
+
+  it("returns undefined when JSON values are not all strings", () => {
+    expect(parseHeaders('{"X-Custom":123}')).toBeUndefined();
+    expect(parseHeaders('{"X-Custom":true}')).toBeUndefined();
+    expect(parseHeaders('{"X-Custom":null}')).toBeUndefined();
   });
 });

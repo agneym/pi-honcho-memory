@@ -13,6 +13,7 @@ export interface HonchoExtensionConfig {
   enabled: boolean;
   apiKey?: string;
   baseURL?: string;
+  headers?: Record<string, string>;
   workspaceId: string;
   userPeerId: string;
   aiPeerId: string;
@@ -27,6 +28,7 @@ interface ConfigFileHost {
   workspace?: string;
   aiPeer?: string;
   endpoint?: string;
+  headers?: Record<string, string>;
   sessionStrategy?: HonchoSessionStrategy;
   contextTokens?: number;
   maxMessageLength?: number;
@@ -95,6 +97,32 @@ export const getSessionStrategyLabel = (strategy: HonchoSessionStrategy): string
   return labels[strategy];
 };
 
+export const parseHeaders = (
+  value: string | Record<string, string> | null | undefined,
+): Record<string, string> | undefined => {
+  if (typeof value === "object" && value !== null && Object.keys(value).length > 0) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (
+        typeof parsed === "object" &&
+        parsed !== null &&
+        Object.values(parsed).every((v) => typeof v === "string")
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        return parsed as Record<string, string>;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  return undefined;
+};
+
 export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
   const file = await readConfigFile();
   const piHost = file?.hosts?.pi;
@@ -105,6 +133,8 @@ export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
   const enabled = enabledEnv !== undefined ? enabledEnv === "true" : Boolean(apiKey);
 
   const baseURL = process.env.HONCHO_URL || piHost?.endpoint || undefined;
+  const headers =
+    parseHeaders(process.env.HONCHO_HEADERS) || parseHeaders(piHost?.headers) || undefined;
   const workspaceId = process.env.HONCHO_WORKSPACE_ID || piHost?.workspace || "pi";
   const userPeerId =
     process.env.HONCHO_PEER_NAME || file?.peerName || userInfo().username || "user";
@@ -133,6 +163,7 @@ export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
     enabled,
     apiKey,
     baseURL,
+    headers,
     workspaceId,
     userPeerId,
     aiPeerId,
