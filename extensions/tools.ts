@@ -4,6 +4,7 @@ import { StringEnum } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
 import type { HonchoHandles } from "./client.js";
 import { getHandles } from "./client.js"; // eslint-disable-line no-duplicate-imports
+import { renderHonchoToolOutput } from "./tool-output-renderer.js";
 
 const ensureConnected = (): HonchoHandles => {
   const handles = getHandles();
@@ -22,7 +23,7 @@ const formatResults = (
     .join("\n\n");
 
 // eslint-disable-next-line import/prefer-default-export
-export const registerTools = (pi: ExtensionAPI): void => {
+export const registerTools = (pi: Pick<ExtensionAPI, "registerTool">): void => {
   // --- honcho_search ---
   pi.registerTool({
     name: "honcho_search",
@@ -67,6 +68,7 @@ export const registerTools = (pi: ExtensionAPI): void => {
         details: { count: results.length },
       };
     },
+    renderResult: renderHonchoToolOutput,
   });
 
   // --- honcho_chat ---
@@ -111,6 +113,7 @@ export const registerTools = (pi: ExtensionAPI): void => {
         details: {},
       };
     },
+    renderResult: renderHonchoToolOutput,
   });
 
   // --- honcho_remember ---
@@ -141,5 +144,6 @@ export const registerTools = (pi: ExtensionAPI): void => {
         details: {},
       };
     },
+    renderResult: renderHonchoToolOutput,
   });
 };

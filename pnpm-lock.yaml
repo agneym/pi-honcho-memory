@@ -24,6 +24,9 @@ importers:
       '@changesets/cli':
         specifier: ^2.30.0
         version: 2.30.0(@types/node@25.5.0)
+      '@mariozechner/pi-tui':
+        specifier: '*'
+        version: 0.62.0
       lefthook:
         specifier: ^2.1.4
         version: 2.1.4
