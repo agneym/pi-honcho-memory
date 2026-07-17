@@ -8,6 +8,7 @@ import {
   getCachedMemory,
   refreshMemoryCache,
   saveMessages,
+  wrapMemoryForSystemPrompt,
 } from "./memory.js";
 import { registerTools } from "./tools.js";
 
@@ -104,7 +105,7 @@ export default function honcho(pi: ExtensionAPI): void {
     }
 
     return {
-      systemPrompt: `${event.systemPrompt}\n\n${memoryText}`,
+      systemPrompt: `${event.systemPrompt}\n\n${wrapMemoryForSystemPrompt(memoryText)}`,
     };
   });
 
