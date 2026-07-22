@@ -27,14 +27,25 @@ pi -e npm:@agney/pi-honcho-memory
 
 ## Setup
 
-1. Get an API key from [honcho.dev](https://honcho.dev)
-2. Run `/honcho-setup` inside pi to configure interactively
+Run `/honcho-setup` inside pi to configure interactively. You can pass a self-hosted server's base URL directly:
+
+```text
+/honcho-setup http://localhost:8000
+```
+
+For Honcho Cloud, get an API key from [honcho.dev](https://honcho.dev). For a self-hosted server without authentication, leave the API key blank.
 
 Or set environment variables:
 
 ```bash
+# Honcho Cloud
 export HONCHO_API_KEY=hch-...
+
+# Self-hosted Honcho without authentication
+export HONCHO_URL=http://localhost:8000
 ```
+
+The extension is enabled automatically when either an API key or endpoint is configured. `HONCHO_ENABLED=true` can also enable it explicitly.
 
 ### Honcho agent skills
 
@@ -63,7 +74,7 @@ Config file properties (`~/.honcho/config.json`):
 
 | Prop                         | Environment variable         | Description                                                            | Default            |
 | ---------------------------- | ---------------------------- | ---------------------------------------------------------------------- | ------------------ |
-| `apiKey`                     | `HONCHO_API_KEY`             | Honcho API key                                                         | none               |
+| `apiKey`                     | `HONCHO_API_KEY`             | Optional API key when the server requires authentication               | none               |
 | `peerName`                   | `HONCHO_PEER_NAME`           | User peer name                                                         | `$USER`            |
 | `hosts.pi.workspace`         | `HONCHO_WORKSPACE_ID`        | Honcho workspace ID                                                    | `pi`               |
 | `hosts.pi.aiPeer`            | `HONCHO_AI_PEER`             | AI peer name                                                           | `pi`               |

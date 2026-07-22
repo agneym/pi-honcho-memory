@@ -3,6 +3,7 @@ import {
   getSessionStrategyLabel,
   normalizePositiveInteger,
   normalizeSessionStrategy,
+  resolveEnabled,
 } from "../extensions/config.ts";
 
 describe("config helpers", () => {
@@ -22,6 +23,17 @@ describe("config helpers", () => {
     expect(getSessionStrategyLabel("repo")).toBe("Repo");
     expect(getSessionStrategyLabel("git-branch")).toBe("Git branch");
     expect(getSessionStrategyLabel("directory")).toBe("Directory");
+  });
+
+  it("enables Honcho when an API key or endpoint is configured", () => {
+    expect(resolveEnabled(undefined, "hch-test", undefined)).toBe(true);
+    expect(resolveEnabled(undefined, undefined, "http://localhost:8000")).toBe(true);
+    expect(resolveEnabled(undefined, undefined, undefined)).toBe(false);
+  });
+
+  it("honors an explicit enabled setting", () => {
+    expect(resolveEnabled("true", undefined, undefined)).toBe(true);
+    expect(resolveEnabled("false", "hch-test", "http://localhost:8000")).toBe(false);
   });
 
   it("normalizes positive integers from numbers and strings", () => {

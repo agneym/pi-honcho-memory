@@ -17,6 +17,15 @@ const JSON_INDENT = 2;
 
 // --- Helpers ---
 
+export const isValidBaseURL = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
 const errorMessage = (err: unknown): string => {
   if (err instanceof Error) {
     return err.message;
@@ -139,24 +148,26 @@ export const registerCommands = (pi: ExtensionAPI): void => {
 
   // --- /honcho-setup ---
   pi.registerCommand("honcho-setup", {
-    description: "Configure Honcho memory integration",
-    handler: async (_args, ctx) => {
+    description: "Configure Honcho memory integration (optional: base URL)",
+    handler: async (args, ctx) => {
       const existing = await resolveConfig();
+      const baseURLArg = args.trim();
 
-      const defaultKey = existing.apiKey ? MASKED_KEY : "hch-...";
-      const apiKey = await ctx.ui.input("Honcho API key:", defaultKey);
-      if (!apiKey || apiKey === MASKED_KEY) {
-        if (!existing.apiKey) {
-          ctx.ui.notify("API key is required.", "error");
-          return;
-        }
+      if (baseURLArg && !isValidBaseURL(baseURLArg)) {
+        ctx.ui.notify("Base URL must be a valid http:// or https:// URL.", "error");
+        return;
       }
 
-      const peerName = await ctx.ui.input("Your peer name:", existing.userPeerId);
-      const endpoint = await ctx.ui.input(
-        "Honcho endpoint (leave blank for default):",
-        existing.baseURL || "",
+      const defaultKey = existing.apiKey ? MASKED_KEY : "";
+      const apiKey = await ctx.ui.input(
+        "Honcho API key (leave blank if authentication is disabled):",
+        defaultKey,
       );
+
+      const peerName = await ctx.ui.input("Your peer name:", existing.userPeerId);
+      const endpoint =
+        baseURLArg ||
+        (await ctx.ui.input("Honcho endpoint (leave blank for default):", existing.baseURL || ""));
       const sessionStrategyInput = await ctx.ui.input(
         "Session strategy (repo/git-branch/directory):",
         existing.sessionStrategy,

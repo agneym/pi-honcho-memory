@@ -50,7 +50,7 @@ export default function honcho(pi: ExtensionAPI): void {
     initializing = (async () => {
       try {
         const config = await resolveConfig();
-        if (!config.enabled || !config.apiKey) {
+        if (!config.enabled) {
           setStatus(ctx, "off");
           return;
         }
