@@ -13,6 +13,7 @@ export interface HonchoExtensionConfig {
   enabled: boolean;
   apiKey?: string;
   baseURL?: string;
+  defaultHeaders?: Record<string, string>;
   workspaceId: string;
   userPeerId: string;
   aiPeerId: string;
@@ -37,6 +38,7 @@ interface ConfigFileHost {
 interface ConfigFile {
   apiKey?: string;
   peerName?: string;
+  defaultHeaders?: Record<string, string>;
   hosts?: {
     pi?: ConfigFileHost;
   };
@@ -129,10 +131,13 @@ export const resolveConfig = async (): Promise<HonchoExtensionConfig> => {
     DEFAULT_TOOL_PREVIEW_LENGTH,
   );
 
+  const defaultHeaders = file?.defaultHeaders || undefined;
+
   return {
     enabled,
     apiKey,
     baseURL,
+    defaultHeaders,
     workspaceId,
     userPeerId,
     aiPeerId,
