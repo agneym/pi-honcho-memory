@@ -108,7 +108,7 @@ describe("bounded lifecycle waits", () => {
     });
     deadline.abort();
 
-    await expect(beforeAgentStart).resolves.toBeUndefined();
+    await expect(beforeAgentStart).resolves.toEqual({ systemPrompt: "base" });
     expect(timeout).toHaveBeenCalledWith(LIFECYCLE_WAIT_TIMEOUT_MS);
   });
 

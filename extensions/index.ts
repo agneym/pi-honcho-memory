@@ -100,12 +100,8 @@ export default function honcho(pi: ExtensionAPI): void {
     }
 
     const memoryText = getCachedMemory();
-    if (!memoryText) {
-      return;
-    }
-
     return {
-      systemPrompt: `${event.systemPrompt}\n\n${memoryText}`,
+      systemPrompt: memoryText ? `${event.systemPrompt}\n\n${memoryText}` : event.systemPrompt,
     };
   });
 
