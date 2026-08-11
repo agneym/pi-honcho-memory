@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { bootstrap, clearHandles, getHandles } from "./client.js";
 import { registerCommands } from "./commands.js";
 import { resolveConfig } from "./config.js";
+import { waitForLifecycle } from "./lifecycle.js";
 import {
   clearCachedMemory,
   flushPending,
@@ -77,14 +78,14 @@ export default function honcho(pi: ExtensionAPI): void {
   });
 
   pi.on("session_switch", async (_event, ctx) => {
-    await flushPending();
+    await waitForLifecycle(flushPending());
     clearHandles();
     clearCachedMemory();
     backgroundInit(ctx);
   });
 
   pi.on("session_fork", async (_event, ctx) => {
-    await flushPending();
+    await waitForLifecycle(flushPending());
     clearHandles();
     clearCachedMemory();
     backgroundInit(ctx);
@@ -95,7 +96,7 @@ export default function honcho(pi: ExtensionAPI): void {
   pi.on("before_agent_start", async (event) => {
     // Wait for initial bootstrap if it's still running on the very first prompt
     if (initializing) {
-      await initializing;
+      await waitForLifecycle(initializing);
     }
 
     const memoryText = getCachedMemory();
@@ -126,19 +127,19 @@ export default function honcho(pi: ExtensionAPI): void {
 
   // --- Flush on lifecycle edges ---
 
-  pi.on("session_before_compact", async () => {
-    await flushPending();
+  pi.on("session_before_compact", async (event) => {
+    await waitForLifecycle(flushPending(), event.signal);
   });
 
   pi.on("session_before_switch", async () => {
-    await flushPending();
+    await waitForLifecycle(flushPending());
   });
 
   pi.on("session_before_fork", async () => {
-    await flushPending();
+    await waitForLifecycle(flushPending());
   });
 
   pi.on("session_shutdown", async () => {
-    await flushPending();
+    await waitForLifecycle(flushPending());
   });
 }
