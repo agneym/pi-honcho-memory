@@ -44,7 +44,16 @@ export default function honcho(pi: ExtensionAPI): void {
   /**
    * Non-blocking bootstrap: kicks off Honcho initialization in the background.
    * Sets status on completion. Never throws.
+   *
+   * Bootstrap is raced against a hard timeout so that an unreachable or slow
+   * Honcho backend can never block Pi startup at the `await initializing` in
+   * before_agent_start (see #20). If the timeout fires, the extension marks
+   * itself offline and Pi continues without memory injection.
+   *
+   * Configurable via HONCHO_BOOTSTRAP_TIMEOUT_MS (default 5000).
    */
+  const BOOTSTRAP_TIMEOUT_MS =
+    Number(process.env.HONCHO_BOOTSTRAP_TIMEOUT_MS) || 5000;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const backgroundInit = (ctx: { ui: any; cwd: string }): void => {
     initializing = (async () => {
@@ -55,11 +64,30 @@ export default function honcho(pi: ExtensionAPI): void {
           return;
         }
 
-        const handles = await bootstrap(pi, config, ctx.cwd);
+        const handles = await Promise.race([
+          bootstrap(pi, config, ctx.cwd),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Honcho bootstrap timed out after ${BOOTSTRAP_TIMEOUT_MS}ms`,
+                  ),
+                ),
+              BOOTSTRAP_TIMEOUT_MS,
+            ),
+          ),
+        ]);
         setStatus(ctx, "connected");
 
-        // Prefetch memory context
-        await refreshMemoryCache(handles);
+        // Prefetch memory context, also raced against a timeout so a slow first
+        // fetch after connection doesn't reintroduce the hang.
+        await Promise.race([
+          refreshMemoryCache(handles),
+          new Promise<void>((resolve) =>
+            setTimeout(resolve, BOOTSTRAP_TIMEOUT_MS),
+          ),
+        ]);
       } catch {
         setStatus(ctx, "offline");
       } finally {
